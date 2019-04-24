@@ -15,11 +15,26 @@ import tornado.ioloop
 import tornado.web
 import os
 
+class FreezerHandler(tornado.web.RequestHandler):
+    def post(self):
+        print('FREEZER')
+        data = tornado.escape.json_decode(self.request.body)
+        print(data)
+        
+class DungeonHumidityHandler(tornado.web.RequestHandler):
+    def post(self):
+        print('DUNGEONHUMIDITY')
+        data = tornado.escape.json_decode(self.request.body)
+        print(data)
+
+
 root = os.path.dirname(__file__)
 
 cont = os.path.join(root,'webroot')
 
 handlers = [
+    (r"/data/freezer",FreezerHandler),
+    (r"/data/dungeonHumidity",DungeonHumidityHandler),
     (r"/(.*)", tornado.web.StaticFileHandler, {"path": cont, 'default_filename': 'index.html'})
 ]
 
