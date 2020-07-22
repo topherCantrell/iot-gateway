@@ -17,26 +17,32 @@ import os
 import time
 import threading
 
-from RPi import GPIO
-GPIO.setmode(GPIO.BCM)
+import sys
+import asyncio
 
-PIN_GREEN_LED = 26
+if sys.platform == 'win32':
+    asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
 
-GPIO.setup(PIN_GREEN_LED,GPIO.OUT,initial=GPIO.LOW)
+#from RPi import GPIO
+#GPIO.setmode(GPIO.BCM)
+
+#PIN_GREEN_LED = 26
+
+#GPIO.setup(PIN_GREEN_LED,GPIO.OUT,initial=GPIO.LOW)
 
 STATUS_OK = True
 
-def _show_status():    
-    while True:
-        if STATUS_OK:
-            GPIO.output(PIN_GREEN_LED,GPIO.HIGH)
-        else:
-            GPIO.output(PIN_GREEN_LED,GPIO.LOW)
-        time.sleep(3.9)
-        GPIO.output(PIN_GREEN_LED,GPIO.LOW)
-        time.sleep(.1)
+#def _show_status():    
+#    while True:
+#        if STATUS_OK:
+#            GPIO.output(PIN_GREEN_LED,GPIO.HIGH)
+#        else:
+#            GPIO.output(PIN_GREEN_LED,GPIO.LOW)
+#        time.sleep(3.9)
+#        GPIO.output(PIN_GREEN_LED,GPIO.LOW)
+#        time.sleep(.1)
         
-threading.Thread(target=_show_status).start()
+#threading.Thread(target=_show_status).start()
     
 
 class FreezerHandler(tornado.web.RequestHandler):
