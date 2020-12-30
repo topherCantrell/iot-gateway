@@ -14,6 +14,7 @@ import tkinter
 import requests
 import time
 import threading
+import json
 
 from adafruit_io import AdafruitIO
 
@@ -27,13 +28,13 @@ root.configure(background='black')
 root.attributes('-fullscreen', True)
 
 status = tkinter.Label(root, text=TEMPERATURE, bg=COLOR, fg='black', width=20, height=5)
-status.place(x=250, y=210) 
+status.place(x=250, y=210)
+
 
 def thread_check_temperature():
-    global TEMPERATURE,COLOR
+    global TEMPERATURE, COLOR
     while True:
         try:
-            time.sleep(10)
             url = 'http://192.168.1.108/data/freezer'
             r = requests.get(url)
             data = r.json()
@@ -42,23 +43,30 @@ def thread_check_temperature():
                 COLOR = 'red'
             else:
                 COLOR = 'green'
-            fruit.add_data_retry('freezer-temperature',str(data['value']))
-        except:
+            fruit.add_data_retry('freezer-temperature', str(data['value']))
+        except Exception:
             COLOR = 'red'
             TEMPERATURE = 'ERROR'
-            
-def update_temperature():
-    global status,TEXT_COLOR
-    status.config(text=TEMPERATURE,bg=COLOR,fg=TEXT_COLOR)    
-    root.after(10000,update_temperature)
-    if TEXT_COLOR=='black':
-        TEXT_COLOR='white'
-    else:
-        TEXT_COLOR='black'
+        finally:
+            time.sleep(60)
 
-fruit = AdafruitIO('topher_cantrell','54ffe6dd2f2440ce99782dee243c3e71')
-            
+
+def update_temperature():
+    global status, TEXT_COLOR
+    status.config(text=TEMPERATURE, bg=COLOR, fg=TEXT_COLOR)
+    root.after(60000, update_temperature)
+    if TEXT_COLOR == 'black':
+        TEXT_COLOR = 'white'
+    else:
+        TEXT_COLOR = 'black'
+
+
+with open('/home/pi/config.json') as f:
+    cfg = json.load(f)
+
+fruit = AdafruitIO(cfg['aio_user'], cfg['aio_key'])
+
 threading.Thread(target=thread_check_temperature).start()
-root.after(10000,update_temperature)
+root.after(1000, update_temperature)
 
 root.mainloop()

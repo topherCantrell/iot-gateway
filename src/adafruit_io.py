@@ -56,10 +56,4 @@ class AdafruitIO:
             except:
                 time.sleep(retry_wait)
         return self.add_data(feed,value)
-    
-if __name__ == '__main__':
-    
-    fruit = AdafruitIO('topher_cantrell','54ffe6dd2f2440ce99782dee243c3e71')
-    
-    fruit.add_data_retry('freezer-temperature','-100')
-    
+   
