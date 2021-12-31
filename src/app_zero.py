@@ -4,8 +4,11 @@ import json
 import requests
 import time
 
+import board
+import neopixel
+
 ''' 
-- pip3 install adafruit-io
+- sudo python3 -m pip install adafruit-io rpi_ws281x adafruit-circuitpython-neopixel
 - File /home/pi/config.json:
 {
     "aio_user" : "topher_cantrell",
@@ -26,6 +29,8 @@ with open('/home/pi/config.json') as f:
 
 fruit = Client(cfg['aio_user'], cfg['aio_key'])
 
+pixels = neopixel.NeoPixel(board.D18,1)
+pixels[0] = (0,0,0)
 
 def thread_check_temperature():
     temperature = 0
@@ -38,8 +43,18 @@ def thread_check_temperature():
             temperature = str(data['value'])            
             fruit.send('freezer-temperature', str(data['value']))
             # print('# Sent')
+            if data['value'] > -5:
+                pixels[0] = (255,0,0)
+                time.sleep(1) # Let the LED show before we try sending
+            else:
+                pixels[0] = (0,0,0)
+                time.sleep(0.5)
+                pixels[0] = (0,10,0)
+                time.sleep(1) # Let the LED show before we try sending
         except Exception as f:
-            print('# Error sending',f)            
+            # print('# Error sending',f)      
+            pixels[0] = (0xFF,0xE9,0x00) # Yellow ... communication error
+            time.sleep(1) # Let the LED show before we try again
         finally:
             time.sleep(60)
 
