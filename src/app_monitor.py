@@ -16,7 +16,7 @@ import time
 import threading
 import json
 
-from adafruit_io import AdafruitIO
+import AdafruitIO
 
 TEMPERATURE = 'NONE'
 COLOR = 'red'
