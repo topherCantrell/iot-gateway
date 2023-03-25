@@ -1,20 +1,9 @@
 
-from Adafruit_IO import Client
-import json
-import requests
-import time
-
-import board
-import neopixel
+import asyncio
+import aiohttp.web  # sudo python3 -m pip install aiohttp
+import hardware
 
 ''' 
-- sudo python3 -m pip install adafruit-io rpi_ws281x adafruit-circuitpython-neopixel
-- File /home/pi/config.json:
-{
-    "aio_user" : "topher_cantrell",
-    "aio_key"  : "***insert key***"
-}
-
 - Add this line to /etc/rc.local (before the exit 0):
 -   /home/pi/ONBOOT.sh 2> /home/pi/ONBOOT.errors > /home/pi/ONBOOT.stdout &
 - Add the following ONBOOT.sh script to /home/pi and make it executable:
@@ -23,39 +12,55 @@ import neopixel
 cd /home/pi/iot-gateway
 python3 app_zero.py  
 '''
+TIME_POLL = 100  # tenths of a second between pollings (10)
 
-with open('/home/pi/config.json') as f:
-    cfg = json.load(f)
+COLOR_START = (100, 100, 100)
+COLOR_OK = (0, 10, 0)
+COLOR_BAD = (255, 0, 0)
+COLOR_COMM = (0xFF,0xE9,0x00)
 
-fruit = Client(cfg['aio_user'], cfg['aio_key'])
+HARD = hardware.Hardware()
 
-pixels = neopixel.NeoPixel(board.D18,1)
-pixels[0] = (0,0,0)
-
-def thread_check_temperature():
-    temperature = 0
-    while True:
-        try:
+async def get_color():
+    try:
+        async with aiohttp.ClientSession() as session:
             url = 'http://192.168.1.108/data/freezer'
-            r = requests.get(url)
-            data = r.json()
-            # print('#',data)
-            temperature = str(data['value'])            
-            fruit.send('freezer-temperature', str(data['value']))
-            # print('# Sent')
-            if data['value'] > -5:
-                pixels[0] = (255,0,0)
-                time.sleep(1) # Let the LED show before we try sending
-            else:
-                pixels[0] = (0,0,0)
-                time.sleep(0.5)
-                pixels[0] = (0,10,0)
-                time.sleep(1) # Let the LED show before we try sending
-        except Exception as f:
-            # print('# Error sending',f)      
-            pixels[0] = (0xFF,0xE9,0x00) # Yellow ... communication error
-            time.sleep(1) # Let the LED show before we try again
-        finally:
-            time.sleep(60)
+            async with session.get(url) as resp: 
+                data = await resp.json()                    
+                temperature = data['value']       
+                # print(temperature)                         
+                if temperature > -5:
+                    return COLOR_BAD                        
+                else:
+                    return COLOR_OK                        
+    except Exception as f:
+        # print(f)
+        return COLOR_COMM
 
-thread_check_temperature()
+async def task_check_temperature():  
+    
+    brightness = 1.0
+    color = COLOR_START
+    pulse = -1  # Which way the brigtness is changing    
+    tick = 0.1 # Tenths of a second tick
+
+    while True:
+        await asyncio.sleep(0.1) # Tenth of a second
+        tick -= 1        
+        if tick <= 0:
+            tick = TIME_POLL
+            color = await get_color()
+        HARD.set_color(color,brightness)
+        # We pulse in the main loop instead of a separate task. That way
+        # we show visual evidence that the polling loop is running.
+        brightness = brightness+(pulse*0.1)
+        if brightness > 1.0:
+            pulse = -1  # Going down now
+            brightness = 1.0
+        elif brightness < 0.1:
+            pulse = 1
+            brightness = 0.1         
+
+
+# In the future, this will be a full website with info
+asyncio.run(task_check_temperature())
